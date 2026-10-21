@@ -1,0 +1,3 @@
+// Icon resource. Compiled only if Icon/icon.ico exists.
+// Path is relative to app.rc location (the program folder).
+1 ICON "Icon/icon.ico"
