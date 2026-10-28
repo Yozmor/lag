@@ -1,0 +1,8 @@
+{
+  "ConnectionTimeout": 1500,
+  "BannerTimeout": 2000,
+  "HttpTimeout": 5,
+  "MaxLogAgeDays": 180,
+  "MaxHops": 30,
+  "SocksPort": 0
+}
