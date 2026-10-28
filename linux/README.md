@@ -12,13 +12,13 @@ sudo dnf install -y git gcc-c++ make openssl-devel      # Fedora
 sudo pacman -S --needed git base-devel openssl          # Arch
 ```
 
-**2. Скачать только папку `linux/`, собрать и поставить как команду `lag`** (в домашнюю папку, без `sudo`):
+**2. Скачать папку `linux/`, собрать и поставить как команду `lag`** (в домашнюю папку, без `sudo`):
 
 ```bash
 git clone --depth 1 --filter=blob:none --sparse https://github.com/Yozmor/lag.git && cd lag && git sparse-checkout set linux && cd linux && make install
 ```
 
-Качается **только часть для Linux** (sparse-checkout не тянет `windows/` и бинарники); программа ставится в `~/.local/bin`. Дальше просто набирай **`lag`**. Если `lag` не находится — `~/.local/bin` ещё не в `PATH`; `make install` выведет готовую строку для `~/.bashrc`, скопируй её и открой новый терминал.
+Программа ставится в `~/.local/bin`. Дальше просто набирай **`lag`**. Если `lag` не находится — `~/.local/bin` ещё не в `PATH`; `make install` выведет готовую строку для `~/.bashrc`, скопируй её и открой новый терминал.
 
 Поставить для всех пользователей (в `/usr/local/bin`, всегда в `PATH`): в конце той же команды вместо `make install` напиши `make && sudo make install PREFIX=/usr/local`.
 
