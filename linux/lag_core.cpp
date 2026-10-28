@@ -101,12 +101,13 @@ static inline void setSockTimeoutMs(int s, int ms) {
 
 // ================== ВЕРСИЯ И ССЫЛКИ ОБНОВЛЕНИЯ ==================
 static const std::string SCRIPT_VERSION = "1.0";
-// Файл, из которого читается строка версии ('VERSION = x.y' в шапке этого файла).
-static const std::string UPDATE_VERSION_URL =
-    "https://raw.githubusercontent.com/Yozmor/lagg/refs/heads/main/linux/lag_core.cpp";
-// Архив всего репозитория; из него берётся папка linux/ и собирается заново.
-static const std::string UPDATE_TAR_URL =
-    "https://github.com/Yozmor/lagg/archive/refs/heads/main.tar.gz";
+// Обновление качает только файлы папки linux/ (не весь репозиторий), собирает и заменяет бинарник.
+// База для raw-файлов и список файлов Linux-версии:
+static const std::string UPDATE_RAW_BASE =
+    "https://raw.githubusercontent.com/Yozmor/lag/refs/heads/main/linux/";
+static const char* UPDATE_FILES[] = { "lag.cpp", "lag_core.cpp", "lag_probe.cpp", "lag_tui.cpp", "Makefile" };
+// Из какого файла читается строка версии ('VERSION = x.y' в шапке lag_core.cpp).
+static const std::string UPDATE_VERSION_URL = UPDATE_RAW_BASE + "lag_core.cpp";
 
 // ================== ГЛОБАЛЬНЫЕ ПУТИ ==================
 static std::string g_exePath;     // путь к самой программе
@@ -1884,9 +1885,9 @@ static std::string fetchRemoteVersion() {
 // Скачивает репозиторий, собирает linux/ и заменяет программу. Списки, config.json и логи не трогает.
 // Возвращает true, если новая программа на месте (тогда её можно перезапустить).
 static bool updateSelf() {
-    writeLog("Скачивание обновления...", "Cyan");
-    if (!haveCmd("tar") || !haveCmd("make") || !haveCmd("g++")) {
-        writeLog("Для обновления нужны tar, make и g++ (и заголовки OpenSSL).", "Red");
+    writeLog("Скачивание обновления (только файлы linux/)...", "Cyan");
+    if (!haveCmd("make") || !haveCmd("g++")) {
+        writeLog("Для обновления нужны make и g++ (и заголовки OpenSSL).", "Red");
         writeLog("  Debian/Ubuntu: sudo apt install build-essential libssl-dev", "White");
         writeLog("  Fedora:        sudo dnf install gcc-c++ make openssl-devel", "White");
         writeLog("  Arch:          sudo pacman -S base-devel openssl", "White");
@@ -1895,20 +1896,18 @@ static bool updateSelf() {
     std::string tmp = g_baseDir + "/_update_tmp";
     runCmd("rm -rf " + shellQuote(tmp) + " 2>/dev/null");
     ensureDirRec(tmp);
-    std::string tgz = tmp + "/main.tar.gz";
-    if (!downloadFile(UPDATE_TAR_URL, tgz)) { writeLog("Ошибка скачивания архива.", "Red"); return false; }
-    if (runAndTee("tar -xzf " + shellQuote(tgz) + " -C " + shellQuote(tmp), "", "Gray") != 0) {
-        writeLog("Не удалось распаковать архив.", "Red"); return false;
-    }
-    std::string src;
-    if (DIR* d = opendir(tmp.c_str())) {
-        while (dirent* e = readdir(d)) {
-            std::string n = e->d_name;
-            if (n != "." && n != ".." && isDir(tmp + "/" + n + "/linux")) { src = tmp + "/" + n + "/linux"; break; }
+    std::string src = tmp;
+    // Качаем по отдельности только исходники Linux-версии — не весь репозиторий.
+    for (const char* f : UPDATE_FILES) {
+        std::string url = UPDATE_RAW_BASE + f;
+        if (!downloadFile(url, src + "/" + f) && !getSystemProxy().empty())
+            downloadFile(url, src + "/" + f);   // вторая попытка через системный прокси
+        if (!pathExists(src + "/" + f)) {
+            writeLog(std::string("Не удалось скачать ") + f + " — обновление отменено.", "Red");
+            return false;
         }
-        closedir(d);
+        writeLog(std::string("  ") + f, "Gray");
     }
-    if (src.empty()) { writeLog("В архиве нет папки linux/.", "Red"); return false; }
 
     writeLog("Сборка новой версии...", "Cyan");
     if (runAndTee("make -C " + shellQuote(src), "", "Gray") != 0 || access((src + "/lag").c_str(), X_OK) != 0) {

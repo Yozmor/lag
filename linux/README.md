@@ -12,29 +12,17 @@ sudo dnf install -y git gcc-c++ make openssl-devel      # Fedora
 sudo pacman -S --needed git base-devel openssl          # Arch
 ```
 
-**2. Скачать, собрать и поставить как команду `lag`:**
+**2. Скачать только папку `linux/`, собрать и поставить как команду `lag`:**
 
 ```bash
-git clone https://github.com/Yozmor/lagg.git && cd lagg/linux && make && sudo make install PREFIX=/usr/local
+git clone --depth 1 --filter=blob:none --sparse https://github.com/Yozmor/lag.git && cd lag && git sparse-checkout set linux && cd linux && make && sudo make install PREFIX=/usr/local
 ```
 
-После этого просто набирай **`lag`** в любом терминале.
+Качается **только часть для Linux** (sparse-checkout не тянет `windows/` и бинарники). После установки просто набирай **`lag`** в любом терминале.
 
-Без `sudo` (установка в домашнюю папку `~/.local/bin`):
+Без `sudo` (в домашнюю папку `~/.local/bin`) — та же команда, но последним `make install` вместо `sudo make install PREFIX=/usr/local`. Если потом `lag` не находится — `~/.local/bin` не в `PATH`; `make install` подскажет, какую строку добавить в `~/.bashrc`.
 
-```bash
-git clone https://github.com/Yozmor/lagg.git && cd lagg/linux && make install
-```
-
-Если после этого `lag` не находится — `~/.local/bin` не в `PATH`; `make install` подскажет, какую строку добавить в `~/.bashrc` (или поставь командой с `sudo` выше).
-
-Без `git` (скачать архивом):
-
-```bash
-curl -L https://github.com/Yozmor/lagg/archive/refs/heads/main.tar.gz | tar xz && cd lagg-main/linux && make && sudo make install PREFIX=/usr/local
-```
-
-Обновлять потом можно прямо из программы (раздел «Обновление») или повторив команду.
+Обновлять потом можно прямо из программы (раздел «Обновление» — качает только файлы `linux/`) или повторив команду.
 
 ## Запуск
 
@@ -47,10 +35,11 @@ lag --help           # справка
 
 ## Интерфейс
 
-- **↑↓** — выбрать пункт меню; **Tab** — переключить фокус меню / окно.
-- **Enter** — запустить проверку / открыть; **1–8** — быстрый запуск раздела.
-- В разделе: **↑↓** листают лог, **Enter** перезапускает; в «Настройках» **←→** меняют значение, **S** сохраняет.
-- **Esc** — на главную; **Q** или **0** — выход.
+- **↑↓** — выбрать раздел в меню; выбранный раздел сразу показывается справа (но **не** запускается).
+- **Enter** — запустить проверку выбранного раздела (для «Обновления» — проверить/обновить, для «Настроек» — войти в правку).
+- **1–8** — просто переключить раздел (тоже без запуска).
+- **Tab** — перевести фокус в окно: там **↑↓** листают лог, в «Настройках» **←→** меняют значение, **S** сохраняет.
+- **Esc** — вернуться на главную; **Q** или **0** — выход.
 
 Окну нужно хотя бы 80×20; на маленьком терминале Lag попросит увеличить окно.
 

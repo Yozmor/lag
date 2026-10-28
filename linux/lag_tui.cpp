@@ -291,7 +291,7 @@ static void drawHomeContent(int cx, int cw) {
     }
     // быстрый запуск
     int qy = by + 6;
-    mv(qy, cx + 2); printf("%sБЫСТРЫЙ ЗАПУСК%s", ui::TEAL, ui::RESET);
+    mv(qy, cx + 2); printf("%sРАЗДЕЛЫ (Enter — запустить выбранный)%s", ui::TEAL, ui::RESET);
     for (int i = 0; i < 6; i++) {
         mv(qy + 1 + i, cx + 4);
         printf("%s%d%s  %s%s%s  %s%s%s", ui::AMBER, i + 1, ui::RESET,
@@ -397,10 +397,10 @@ static void render() {
     std::string keys;
     if (g_screen == SCR_HOME) {
         drawHomeContent(cx, cw);
-        keys = "↑↓ пункт   Enter открыть/запуск   1-8 быстрый выбор   Q выход";
+        keys = "↑↓ выбрать раздел   Enter запустить   1-8 переключить   Q выход";
     } else if (isRunnable(g_screen)) {
         drawRunContent(g_screen, cx, cw);
-        keys = "Enter запуск   ↑↓ прокрутка лога   Tab фокус   Esc на главную   Q выход";
+        keys = "Enter запустить   Tab окно (прокрутка)   ↑↓ листать   Esc главная   Q выход";
     } else if (g_screen == SCR_SETTINGS) {
         drawSettings(cx, cw);
         keys = "↑↓ параметр   ←→ значение   S сохранить   Esc назад   Q выход";
@@ -438,33 +438,26 @@ static int readKey(char& ch) {
 
 static void openList(const char* file);
 
-static void setScreen(int s) { g_screen = s; g_focus = (s == SCR_HOME) ? 0 : 1; if (s == SCR_HOME) refreshHome(); g_dirty = true; }
+// Показать раздел в правой панели. Фокус НЕ трогаем — им управляет цикл ввода.
+static void showScreen(int s) { g_screen = s; if (s == SCR_HOME) refreshHome(); g_dirty = true; }
 
-static void onEnter() {
-    if (g_screen == SCR_HOME) {
-        int s = g_sel;
-        if (isRunnable(s)) { setScreen(s); startRun(s); }
-        else setScreen(s);
-        return;
-    }
-    if (isRunnable(g_screen)) { startRun(g_screen); return; }
-    if (g_screen == SCR_UPDATE) {
-        if (g_updBusy) return;
-        g_updBusy = true; g_updMsg = "Проверяю версию…"; g_dirty = true;
-        std::thread([] {
-            std::string rv = fetchRemoteVersion();
-            if (rv.empty()) g_updMsg = "Не удалось получить версию с GitHub (сеть/прокси).";
-            else if (rv == SCRIPT_VERSION) g_updMsg = "У тебя последняя версия (" + rv + ").";
-            else {
-                g_updMsg = "Есть версия " + rv + " — качаю и собираю…";
-                g_dirty = true;
-                bool ok = updateSelf();
-                g_updMsg = ok ? ("Готово: обновлено до " + rv + ". Перезапусти Lag.")
-                              : "Обновление не удалось — подробности в консоли после выхода.";
-            }
-            g_updBusy = false; g_dirty = true;
-        }).detach();
-    }
+// Проверка/обновление — отдельное действие, запускается только по Enter на разделе «Обновление».
+static void updateAction() {
+    if (g_updBusy) return;
+    g_updBusy = true; g_updMsg = "Проверяю версию…"; g_dirty = true;
+    std::thread([] {
+        std::string rv = fetchRemoteVersion();
+        if (rv.empty()) g_updMsg = "Не удалось получить версию с GitHub (сеть/прокси).";
+        else if (rv == SCRIPT_VERSION) g_updMsg = "У тебя последняя версия (" + rv + ").";
+        else {
+            g_updMsg = "Есть версия " + rv + " — качаю и собираю…";
+            g_dirty = true;
+            bool ok = updateSelf();
+            g_updMsg = ok ? ("Готово: обновлено до " + rv + ". Перезапусти Lag.")
+                          : "Обновление не удалось — подробности в консоли после выхода.";
+        }
+        g_updBusy = false; g_dirty = true;
+    }).detach();
 }
 
 int tuiMain() {
@@ -485,23 +478,24 @@ int tuiMain() {
         if (g_busy) g_dirty = true;   // живой лог
         if (k == K_NONE) continue;
 
-        if (k == K_CHAR && (ch == 'q' || ch == 'Q')) { run = false; continue; }
-        if (k == K_CHAR && ch == '0') { run = false; continue; }
+        if (k == K_CHAR && (ch == 'q' || ch == 'Q' || ch == '0')) { run = false; continue; }
+        if (k == K_ESC) { showScreen(SCR_HOME); g_focus = 0; continue; }
         if (k == K_TAB) { if (g_screen != SCR_HOME) g_focus ^= 1; g_dirty = true; continue; }
-        if (k == K_ESC) { if (g_screen != SCR_HOME) setScreen(SCR_HOME); continue; }
 
-        if (k == K_CHAR && ch >= '1' && ch <= '8') {   // быстрый выбор раздела
-            int s = ch - '1';
-            g_sel = s;
-            if (isRunnable(s)) { setScreen(s); startRun(s); }
-            else setScreen(s);
-            continue;
+        // Цифры 1-8: только ПЕРЕКЛЮЧАЮТ раздел, проверку НЕ запускают.
+        if (k == K_CHAR && ch >= '1' && ch <= '8') {
+            g_sel = ch - '1'; showScreen(g_sel); g_focus = 0; continue;
         }
 
-        if (g_focus == 0) {   // меню
-            if (k == K_UP)   { g_sel = (g_sel - 1 + SCR_COUNT) % SCR_COUNT; g_dirty = true; }
-            if (k == K_DOWN) { g_sel = (g_sel + 1) % SCR_COUNT; g_dirty = true; }
-            if (k == K_ENTER) onEnter();
+        if (g_focus == 0) {   // фокус в меню: ↑↓ выбирают раздел и сразу показывают его (без запуска)
+            if (k == K_UP)   { g_sel = (g_sel - 1 + SCR_COUNT) % SCR_COUNT; showScreen(g_sel); }
+            if (k == K_DOWN) { g_sel = (g_sel + 1) % SCR_COUNT; showScreen(g_sel); }
+            if (k == K_ENTER) {
+                if (isRunnable(g_sel)) startRun(g_sel);        // запуск проверки — только по Enter
+                else if (g_sel == SCR_UPDATE) updateAction();  // Обновление — проверить/обновить
+                else g_focus = 1;                               // Настройки — войти в окно для правки
+                g_dirty = true;
+            }
             continue;
         }
         // фокус в окне
@@ -526,7 +520,7 @@ int tuiMain() {
             if (k == K_ENTER) startRun(g_screen);
             (void)lh; g_dirty = true; continue;
         }
-        if (g_screen == SCR_UPDATE) { if (k == K_ENTER) onEnter(); continue; }
+        if (g_screen == SCR_UPDATE) { if (k == K_ENTER) updateAction(); g_dirty = true; continue; }
     }
     termRestore();
     return 0;
