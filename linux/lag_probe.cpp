@@ -367,7 +367,7 @@ static void writeVerdictJson(const std::string& txtLogFile, const std::vector<Di
     jp += "_verdict.json";
 
     SYSTEMTIME st; GetLocalTime(&st);
-    char ts[32];
+    char ts[48];
     snprintf(ts, sizeof(ts), "%04d-%02d-%02dT%02d:%02d:%02d",
              st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
 
@@ -479,7 +479,7 @@ static void writeUdpJson(const std::string& txtLogFile, const std::vector<StunRe
     size_t dot = jp.rfind('.'); if (dot != std::string::npos) jp = jp.substr(0, dot);
     jp += "_udp.json";
     SYSTEMTIME st; GetLocalTime(&st);
-    char ts[32];
+    char ts[48];
     snprintf(ts, sizeof(ts), "%04d-%02d-%02dT%02d:%02d:%02d",
              st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
     std::ostringstream j;

@@ -2,32 +2,48 @@
 
 Терминальная версия (TUI). Тот же движок диагностики, что в Windows-версии; системные части написаны под Linux.
 
-## Зависимости
+## Установка одной командой
 
-Нужны компилятор C++17 и заголовки OpenSSL:
-
-```bash
-# Debian / Ubuntu
-sudo apt install build-essential libssl-dev
-# Fedora
-sudo dnf install gcc-c++ make openssl-devel
-# Arch
-sudo pacman -S base-devel openssl
-```
-
-## Сборка и запуск
+**1. Зависимости** — один раз, под свой дистрибутив (git, компилятор C++17, заголовки OpenSSL):
 
 ```bash
-cd linux
-make                 # соберёт ./lag
-./lag                # терминальный интерфейс
+sudo apt install -y git build-essential libssl-dev     # Debian / Ubuntu
+sudo dnf install -y git gcc-c++ make openssl-devel      # Fedora
+sudo pacman -S --needed git base-devel openssl          # Arch
 ```
 
-Установка в `~/.local/bin` (должен быть в `PATH`):
+**2. Скачать, собрать и поставить как команду `lag`:**
 
 ```bash
-make install         # или: make install PREFIX=/usr/local  (с sudo)
+git clone https://github.com/Yozmor/lagg.git && cd lagg/linux && make && sudo make install PREFIX=/usr/local
 ```
+
+После этого просто набирай **`lag`** в любом терминале.
+
+Без `sudo` (установка в домашнюю папку `~/.local/bin`):
+
+```bash
+git clone https://github.com/Yozmor/lagg.git && cd lagg/linux && make install
+```
+
+Если после этого `lag` не находится — `~/.local/bin` не в `PATH`; `make install` подскажет, какую строку добавить в `~/.bashrc` (или поставь командой с `sudo` выше).
+
+Без `git` (скачать архивом):
+
+```bash
+curl -L https://github.com/Yozmor/lagg/archive/refs/heads/main.tar.gz | tar xz && cd lagg-main/linux && make && sudo make install PREFIX=/usr/local
+```
+
+Обновлять потом можно прямо из программы (раздел «Обновление») или повторив команду.
+
+## Запуск
+
+```bash
+lag                  # терминальный интерфейс
+lag --help           # справка
+```
+
+Если не ставил в систему, а только собрал (`make`) — запускай из папки: `./lag`.
 
 ## Интерфейс
 

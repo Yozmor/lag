@@ -153,7 +153,7 @@ static void box(int r, int c, int w, int h, const std::string& title, const char
 
 static std::string nowClock() {
     SYSTEMTIME st; GetLocalTime(&st);
-    char b[32]; snprintf(b, sizeof(b), "%02d.%02d.%04d  %02d:%02d", st.wDay, st.wMonth, st.wYear, st.wHour, st.wMinute);
+    char b[48]; snprintf(b, sizeof(b), "%02d.%02d.%04d  %02d:%02d", st.wDay, st.wMonth, st.wYear, st.wHour, st.wMinute);
     return b;
 }
 
@@ -512,7 +512,8 @@ int tuiMain() {
             if (k == K_LEFT || k == K_RIGHT) {
                 SetItem& it = items[g_setSel];
                 int v = *it.val + (k == K_RIGHT ? it.step : -it.step);
-                if (v < it.lo) v = it.lo; if (v > it.hi) v = it.hi;
+                if (v < it.lo) v = it.lo;
+                if (v > it.hi) v = it.hi;
                 *it.val = v;
             }
             if (k == K_CHAR && (ch == 's' || ch == 'S')) { saveConfig(); g_flash = "Сохранено в config.json"; }

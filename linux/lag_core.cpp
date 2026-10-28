@@ -1355,7 +1355,7 @@ static std::vector<int> loadPorts() {
         if (t.size() >= 3 && (unsigned char)t[0] == 0xEF) t = t.substr(3);   // BOM
         if (t.empty() || t[0] == '#') continue;
         size_t sc = t.find(';');
-        int a, b;
+        int a = 0, b = 0;
         if (!parsePortSpec(sc == std::string::npos ? t : t.substr(0, sc), a, b).empty()) continue;
         for (int p = a; p <= b; p++) if (!seen[p]) { seen[p] = true; out.push_back(p); }
     }
@@ -1568,7 +1568,7 @@ static void writeStateJson(const std::string& txtLogFile) {
     const char* modeStr = (mode == VpnMode::Proxy) ? "proxy" : (mode == VpnMode::Tun) ? "tun" : "none";
 
     SYSTEMTIME st; GetLocalTime(&st);
-    char ts[32];
+    char ts[48];
     snprintf(ts, sizeof(ts), "%04d-%02d-%02dT%02d:%02d:%02d",
              st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
 
