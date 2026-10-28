@@ -1217,7 +1217,7 @@ static void drawSettings() {
 
     // --- обновление ---
     textW(L"ОБНОВЛЕНИЕ", X(14), Y(386), g.fTiny, pal::AM);
-    std::wstring ver = L"Версия " + toW(SCRIPT_VERSION) + L"  · GitHub Yozmor/lagg";
+    std::wstring ver = L"Версия " + toW(SCRIPT_VERSION) + L"  · GitHub Yozmor/lag";
     textW(ver, X(26), Y(408), g.fRegular, pal::TX);
     float vx = X(26) + textWidth(ver, g.fRegular) + 14;
     int us = g_upd.load();

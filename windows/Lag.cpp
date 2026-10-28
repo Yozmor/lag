@@ -46,10 +46,10 @@ static const std::string SCRIPT_VERSION = "5.2";
 // Raw-файл, из которого читается строка версии (ищется 'VERSION = x.y' или scriptVersion).
 // Windows-версия живёт в папке windows/ репозитория.
 static const std::wstring UPDATE_VERSION_URL =
-    L"https://raw.githubusercontent.com/Yozmor/lagg/refs/heads/main/windows/Lag.cpp";
+    L"https://raw.githubusercontent.com/Yozmor/lag/refs/heads/main/windows/Lag.cpp";
 // ZIP всего репозитория. Нужные файлы — в подпапке <архив>/windows/.
 static const std::wstring UPDATE_ZIP_URL =
-    L"https://github.com/Yozmor/lagg/archive/refs/heads/main.zip";
+    L"https://github.com/Yozmor/lag/archive/refs/heads/main.zip";
 // Подпапка внутри архива, где лежит Windows-версия.
 static const std::wstring UPDATE_SUBDIR = L"windows";
 // Как называется собранный exe после обновления (должен совпадать с именем файла программы).

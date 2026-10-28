@@ -12,15 +12,15 @@ sudo dnf install -y git gcc-c++ make openssl-devel      # Fedora
 sudo pacman -S --needed git base-devel openssl          # Arch
 ```
 
-**2. Скачать только папку `linux/`, собрать и поставить как команду `lag`:**
+**2. Скачать только папку `linux/`, собрать и поставить как команду `lag`** (в домашнюю папку, без `sudo`):
 
 ```bash
-git clone --depth 1 --filter=blob:none --sparse https://github.com/Yozmor/lag.git && cd lag && git sparse-checkout set linux && cd linux && make && sudo make install PREFIX=/usr/local
+git clone --depth 1 --filter=blob:none --sparse https://github.com/Yozmor/lag.git && cd lag && git sparse-checkout set linux && cd linux && make install
 ```
 
-Качается **только часть для Linux** (sparse-checkout не тянет `windows/` и бинарники). После установки просто набирай **`lag`** в любом терминале.
+Качается **только часть для Linux** (sparse-checkout не тянет `windows/` и бинарники); программа ставится в `~/.local/bin`. Дальше просто набирай **`lag`**. Если `lag` не находится — `~/.local/bin` ещё не в `PATH`; `make install` выведет готовую строку для `~/.bashrc`, скопируй её и открой новый терминал.
 
-Без `sudo` (в домашнюю папку `~/.local/bin`) — та же команда, но последним `make install` вместо `sudo make install PREFIX=/usr/local`. Если потом `lag` не находится — `~/.local/bin` не в `PATH`; `make install` подскажет, какую строку добавить в `~/.bashrc`.
+Поставить для всех пользователей (в `/usr/local/bin`, всегда в `PATH`): в конце той же команды вместо `make install` напиши `make && sudo make install PREFIX=/usr/local`.
 
 Обновлять потом можно прямо из программы (раздел «Обновление» — качает только файлы `linux/`) или повторив команду.
 
