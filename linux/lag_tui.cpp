@@ -39,7 +39,7 @@ static const char* logColor(const std::string& c) {
 
 // ================== РАЗДЕЛЫ ==================
 enum Screen { SCR_HOME = -1, SCR_SITES, SCR_DNS, SCR_ZOND, SCR_TRACE, SCR_PORTS, SCR_NET,
-              SCR_SETTINGS, SCR_UPDATE, SCR_COUNT };
+              SCR_LISTS, SCR_SETTINGS, SCR_UPDATE, SCR_COUNT };
 struct MenuItem { const char* name; const char* folderKey; const char* hint; };
 static const MenuItem MENU[SCR_COUNT] = {
     { "Сайты",       "http",         "доступность: DoH + TLS с SNI" },
@@ -48,6 +48,7 @@ static const MenuItem MENU[SCR_COUNT] = {
     { "Трассировка", "trace",        "TCP до цели, гео узлов" },
     { "Порты",       "service_scan", "баннеры, версии, CVE" },
     { "Сеть / VPN",  "netstate",     "IP, маршруты, утечки" },
+    { "Списки",      "",             "правка целей в редакторе" },
     { "Настройки",   "",             "таймауты, сроки, SOCKS-порт" },
     { "Обновление",  "",             "проверить версию на GitHub" },
 };
@@ -210,7 +211,7 @@ static std::vector<RepRow> recentReports(int limit) {
         }
         closedir(dir);
     }
-    const char* COLS[SCR_COUNT] = { "Amber", "Magenta", "Red", "Cyan", "Green", "Green", "Dim", "Dim" };
+    const char* COLS[SCR_COUNT] = { "Amber", "Magenta", "Red", "Cyan", "Green", "Green", "Dim", "Dim", "Dim" };
     for (auto& f : files) {
         struct stat st; if (stat(f.first.c_str(), &st) != 0) continue;
         RepRow r; r.t = st.st_mtime; r.color = "Dim"; r.scr = f.second;
@@ -282,7 +283,7 @@ static void drawMenu() {
 static void drawFooter() {
     int y = g_rows;
     struct { const char* k; const char* l; } keys[] = {
-        { "↑↓", "раздел" }, { "Enter", "запустить" }, { "1-8", "переключить" },
+        { "↑↓", "раздел" }, { "Enter", "запустить" }, { "1-9", "переключить" },
         { "Tab", "окно" }, { "Esc", "главная" }, { "Q", "выход" },
     };
     int x = 2;
@@ -390,6 +391,45 @@ static void drawSettings(int cx, int cw) {
     put(top + h - 2, cx + 3, ui::DIM, "Значения действуют сразу; S — записать в config.json.");
 }
 
+// ---------- Списки (правка в $EDITOR) ----------
+static const struct { const char* file; const char* label; } LISTS[] = {
+    { "sites.txt",        "цели для проверки доступности, DNS и ЗОНДа" },
+    { "dns_targets.txt",  "DNS-серверы для сравнения ответов" },
+    { "trace_targets.txt","цели трассировки" },
+    { "scan_targets.txt", "хосты для сканирования портов" },
+    { "ports.txt",        "порты для сканирования (число или диапазон)" },
+    { "stun_targets.txt", "STUN-серверы (точная карта UDP, необязательно)" },
+    { "config.json",      "настройки: таймауты, сроки, SOCKS-порт" },
+};
+static const int LIST_N = (int)(sizeof(LISTS) / sizeof(LISTS[0]));
+static int g_listSel = 0;
+static void drawLists(int cx, int cw) {
+    int top = 6, h = g_rows - top - 1;
+    box(top, cx, cw, h, "СПИСКИ  //  Enter — открыть в редакторе", g_focus == 1 ? ui::AMBER : ui::TEALD);
+    for (int i = 0; i < LIST_N; i++) {
+        int y = top + 2 + i * 2;
+        bool cur = (g_focus == 1 && g_listSel == i);
+        if (cur) put(y, cx + 1, ui::AMBER, "▌");
+        put(y, cx + 3, ui::AMBER, padRight(LISTS[i].file, 18));
+        put(y, cx + 23, cur ? ui::TX : ui::DIM, clip(LISTS[i].label, cw - 26));
+    }
+    put(top + h - 2, cx + 3, ui::DIM, "Файлы: " + clip(g_settingsDir, cw - 12));
+}
+// Открыть файл списка в редакторе пользователя. На время редактора выходим из
+// альт-экрана/raw-режима, после — возвращаемся и перерисовываемся.
+static void editList(int idx) {
+    std::string path = g_settingsDir + "/" + LISTS[idx].file;
+    const char* ed = getenv("VISUAL");
+    if (!ed || !*ed) ed = getenv("EDITOR");
+    std::string editor = (ed && *ed) ? ed : (haveCmd("nano") ? "nano" : (haveCmd("vim") ? "vim" : "vi"));
+    termRestore();
+    int rc = system((editor + " " + shellQuote(path)).c_str());
+    (void)rc;
+    termRaw(); termSize();
+    g_flash = "Список обновлён: " + std::string(LISTS[idx].file);
+    g_dirty = true;
+}
+
 // ---------- Обновление ----------
 static std::atomic<bool> g_updBusy{false};
 static std::string g_updMsg = "Нажми Enter — проверю версию на GitHub.";
@@ -421,10 +461,11 @@ static void render() {
     int cw = g_cols - CONT_X - 1;
     if (g_screen == SCR_HOME)        drawHomeContent(CONT_X, cw);
     else if (isRunnable(g_screen))   drawRunContent(g_screen, CONT_X, cw);
+    else if (g_screen == SCR_LISTS)  drawLists(CONT_X, cw);
     else if (g_screen == SCR_SETTINGS) drawSettings(CONT_X, cw);
     else if (g_screen == SCR_UPDATE) drawUpdate(CONT_X, cw);
-    drawFooter();
-    if (!g_flash.empty()) put(g_rows, g_cols / 2, ui::GREEN, g_flash);
+    if (!g_flash.empty()) { mv(g_rows, 1); fputs(BG, stdout); fputs("\x1b[K", stdout); put(g_rows, 2, ui::GREEN, g_flash); }
+    else drawFooter();
     fflush(stdout);
 }
 
@@ -493,7 +534,7 @@ int tuiMain() {
         if (k == K_ESC) { showScreen(SCR_HOME); g_focus = 0; continue; }
         if (k == K_TAB) { if (g_screen != SCR_HOME) g_focus ^= 1; g_dirty = true; continue; }
 
-        if (k == K_CHAR && ch >= '1' && ch <= '8') {            // переключить раздел, без запуска
+        if (k == K_CHAR && ch >= '1' && ch <= '9') {            // переключить раздел, без запуска
             g_sel = ch - '1'; showScreen(g_sel); g_focus = 0; continue;
         }
 
@@ -527,6 +568,12 @@ int tuiMain() {
             if (k == K_UP)   { g_scroll[g_screen] = std::max(0, g_scroll[g_screen] - 1); g_follow = false; }
             if (k == K_DOWN) { g_scroll[g_screen] += 1; g_follow = false; }
             if (k == K_ENTER) startRun(g_screen);
+            g_dirty = true; continue;
+        }
+        if (g_screen == SCR_LISTS) {
+            if (k == K_UP)    g_listSel = (g_listSel - 1 + LIST_N) % LIST_N;
+            if (k == K_DOWN)  g_listSel = (g_listSel + 1) % LIST_N;
+            if (k == K_ENTER) editList(g_listSel);
             g_dirty = true; continue;
         }
         if (g_screen == SCR_UPDATE) { if (k == K_ENTER) updateAction(); g_dirty = true; continue; }
