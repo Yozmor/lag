@@ -1,5 +1,5 @@
 // Lag.cpp — утилита проверки сети (порт PowerShell-скрипта Lagg на C++, Win32)
-// VERSION = 5.1
+// Версия программы — в константе SCRIPT_VERSION ниже (её же читает автообновление).
 // Сборка: build.bat (g++ + windres для иконки)
 // Требует Windows 10/11. Кодировка исходника — UTF-8 (без BOM).
 
@@ -41,9 +41,9 @@
 #endif
 
 // ================== ВЕРСИЯ И ССЫЛКИ ОБНОВЛЕНИЯ ==================
-static const std::string SCRIPT_VERSION = "5.2";
+static const std::string SCRIPT_VERSION = "5.4";
 
-// Raw-файл, из которого читается строка версии (ищется 'VERSION = x.y' или scriptVersion).
+// Raw-файл, из которого читается версия (константа SCRIPT_VERSION).
 // Windows-версия живёт в папке windows/ репозитория.
 static const std::wstring UPDATE_VERSION_URL =
     L"https://raw.githubusercontent.com/Yozmor/lag/refs/heads/main/windows/Lag.cpp";
@@ -1534,25 +1534,27 @@ static std::wstring startReport(const std::string& folderKey) {
 // ================== ОБНОВЛЕНИЕ ==================
 static std::string extractVersion(const std::string& content) {
     std::smatch m;
-    if (std::regex_search(content, m, std::regex("VERSION\\s*=\\s*([\\d\\.]+)"))) return m[1];
-    if (std::regex_search(content, m, std::regex("scriptVersion\\s*=\\s*\"([\\d\\.]+)\"")))return m[1];
+    // Читаем именно константу, а не комментарии: SCRIPT_VERSION = "x.y"
+    if (std::regex_search(content, m, std::regex("SCRIPT_VERSION\\s*=\\s*\"([\\d\\.]+)\""))) return m[1];
     return "";
 }
 static std::string fetchRemoteVersion() {
-    HttpResult r = httpRequest(toU8(UPDATE_VERSION_URL), "GET", 5, false, L"", true);
+    // ?nc=... — обход кэша GitHub CDN: без него несколько минут после пуша отдаётся старая версия.
+    std::string vurl = toU8(UPDATE_VERSION_URL) + "?nc=" + std::to_string(GetTickCount64());
+    HttpResult r = httpRequest(vurl, "GET", 5, false, L"", true);
     if (!r.ok || r.body.empty()) return "";
     return extractVersion(r.body);
 }
 static void checkVersionQuiet() {
     std::string rv = fetchRemoteVersion();
-    if (!rv.empty() && rv != SCRIPT_VERSION)
+    if (!rv.empty() && verCmp(rv, SCRIPT_VERSION) > 0)   // только если в репозитории СТРОГО новее
         writeLog(" Доступна новая версия: " + rv + " (текущая: " + SCRIPT_VERSION + ").", "Yellow");
 }
 static void updateSelf() {
     writeLog("\nСкачивание обновления...", "Cyan");
     std::wstring tempZip = g_scriptDir + L"\\_update.zip";
     std::wstring tempDir = g_scriptDir + L"\\_update_tmp";
-    if (!downloadFile(UPDATE_ZIP_URL, tempZip)) { writeLog("Ошибка скачивания архива.", "Red"); return; }
+    if (!downloadFile(UPDATE_ZIP_URL + L"?nc=" + std::to_wstring(GetTickCount64()), tempZip)) { writeLog("Ошибка скачивания архива.", "Red"); return; }
 
     CreateDirectoryW(tempDir.c_str(), nullptr);
     std::wstring cmd = L"tar.exe -xf \"" + tempZip + L"\" -C \"" + tempDir + L"\"";
@@ -1611,7 +1613,9 @@ static void checkForUpdates() {
     writeLog("\nПроверка обновлений...", "Cyan");
     std::string rv = fetchRemoteVersion();
     if (rv.empty()) { writeLog(" Не удалось получить версию с GitHub.", "Red"); return; }
-    if (rv == SCRIPT_VERSION) { writeLog(" У вас актуальная версия (" + SCRIPT_VERSION + ").", "Green"); return; }
+    if (verCmp(rv, SCRIPT_VERSION) <= 0) {   // в репозитории не новее — обновляться некуда (вниз не катимся)
+        writeLog(" У вас актуальная версия (" + SCRIPT_VERSION + "; в репозитории " + rv + ").", "Green"); return;
+    }
     writeLog(" Доступна новая версия: " + rv + " (текущая: " + SCRIPT_VERSION + ").", "Yellow");
     std::string ch = readLineU8("Хотите обновиться? (y/n): ");
     if (ch=="y"||ch=="Y") updateSelf();

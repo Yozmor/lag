@@ -1156,7 +1156,7 @@ static void checkUpdates() {
     std::thread([] {
         std::string rv = fetchRemoteVersion();
         g_updRemote = rv;
-        g_upd = rv.empty() ? UPD_FAIL : (rv == SCRIPT_VERSION ? UPD_LATEST : UPD_NEW);
+        g_upd = rv.empty() ? UPD_FAIL : (verCmp(rv, SCRIPT_VERSION) > 0 ? UPD_NEW : UPD_LATEST);
         g_bg--; g_dirty = true;
     }).detach();
 }

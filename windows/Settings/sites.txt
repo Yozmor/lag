@@ -1,0 +1,82 @@
+
+# --- Мессенджеры ---
+t.me;Telegram (замедление)
+telegram.org;Telegram
+web.telegram.org;Telegram Web
+core.telegram.org;Telegram API
+api.telegram.org;Telegram API
+discord.com;Discord (блок с 2024)
+signal.org;Signal (блок)
+whatsapp.com;WhatsApp (блок с ноя 2025)
+web.whatsapp.com;WhatsApp Web
+viber.com;Viber (ограничен)
+snapchat.com;Snapchat (блок с дек 2025)
+
+# --- Соцсети ---
+facebook.com;Meta/Facebook (блок 2022)
+instagram.com;Meta/Instagram (блок 2022)
+twitter.com;X/Twitter (замедление)
+x.com;X/Twitter
+linkedin.com;LinkedIn (блок 2016)
+
+# --- Видео и медиаплатформы ---
+youtube.com;YouTube (замедление)
+www.youtube.com;YouTube
+twitch.tv;Twitch
+soundcloud.com;SoundCloud
+patreon.com;Patreon (блок)
+
+# --- ИИ-сервисы ---
+chatgpt.com;ChatGPT (блок)
+chat.openai.com;OpenAI ChatGPT
+claude.ai;Claude (недоступен из РФ)
+api.anthropic.com;Anthropic API
+gemini.google.com;Google Gemini
+copilot.microsoft.com;Microsoft Copilot
+
+# --- Независимые и зарубежные СМИ (заблокированы) ---
+meduza.io;Meduza
+bbc.com;BBC
+bbc.co.uk;BBC UK
+dw.com;Deutsche Welle
+svoboda.org;Радио Свобода
+currenttime.tv;Настоящее Время
+theins.ru;The Insider
+novayagazeta.eu;Новая газета Европа
+zona.media;Медиазона
+themoscowtimes.com;The Moscow Times
+verstka.media;Вёрстка
+proekt.media;Проект
+
+# --- Торренты и архивы ---
+rutracker.org;RuTracker (блок)
+thepiratebay.org;The Pirate Bay
+archive.org;Internet Archive
+
+# --- Приватность, обход, VPN (сайты заблокированы) ---
+torproject.org;Tor Project
+protonvpn.com;Proton VPN
+nordvpn.com;NordVPN
+expressvpn.com;ExpressVPN
+mullvad.net;Mullvad VPN
+windscribe.com;Windscribe
+apkmirror.com;APKMirror
+speedtest.net;Speedtest (Ookla)
+
+# --- Игры ---
+roblox.com;Roblox
+steampowered.com
+store.steampowered.com
+login.steampowered.com
+api.steampowered.com
+steamcommunity.com
+steamstatic.com
+steamcontent.com
+steamusercontent.com
+steam-chat.com
+
+# --- КОНТРОЛЬ: НЕ должны блокироваться (проверка, что тест не врёт) ---
+wikipedia.org;Википедия (контроль)
+dzen.ru;Дзен (контроль РФ)
+mail.ru;Mail.ru (контроль РФ)
+gosuslugi.ru;Госуслуги (контроль РФ)

@@ -1,5 +1,5 @@
 // lag_core.cpp — ядро Lag для Linux: все проверки, отчёты, обновление.
-// VERSION = 1.1
+// Версия программы — в константе SCRIPT_VERSION ниже (её же читает автообновление).
 // Подключается из lag.cpp (одна единица трансляции, как в Windows-версии).
 // Сборка: make (нужны g++ с C++17 и заголовки OpenSSL: libssl-dev / openssl-devel).
 // Кодировка исходника — UTF-8.
@@ -100,13 +100,13 @@ static inline void setSockTimeoutMs(int s, int ms) {
 }
 
 // ================== ВЕРСИЯ И ССЫЛКИ ОБНОВЛЕНИЯ ==================
-static const std::string SCRIPT_VERSION = "1.1";
+static const std::string SCRIPT_VERSION = "1.3";
 // Обновление качает только файлы папки linux/ (не весь репозиторий), собирает и заменяет бинарник.
 // База для raw-файлов и список файлов Linux-версии:
 static const std::string UPDATE_RAW_BASE =
     "https://raw.githubusercontent.com/Yozmor/lag/refs/heads/main/linux/";
 static const char* UPDATE_FILES[] = { "lag.cpp", "lag_core.cpp", "lag_probe.cpp", "lag_tui.cpp", "Makefile" };
-// Из какого файла читается строка версии ('VERSION = x.y' в шапке lag_core.cpp).
+// Из какого файла читается версия (константа SCRIPT_VERSION в lag_core.cpp).
 static const std::string UPDATE_VERSION_URL = UPDATE_RAW_BASE + "lag_core.cpp";
 
 // ================== ГЛОБАЛЬНЫЕ ПУТИ ==================
@@ -1872,13 +1872,16 @@ static bool analyzeTrace(const Item& target, const std::string& logFile) {
 // ================== ОБНОВЛЕНИЕ ==================
 static std::string extractVersion(const std::string& content) {
     std::smatch m;
-    if (std::regex_search(content, m, std::regex("VERSION\\s*=\\s*([\\d\\.]+)"))) return m[1];
+    // Читаем именно константу, а не комментарии: SCRIPT_VERSION = "x.y"
+    if (std::regex_search(content, m, std::regex("SCRIPT_VERSION\\s*=\\s*\"([\\d\\.]+)\""))) return m[1];
     return "";
 }
 static std::string fetchRemoteVersion() {
-    HttpResult r = httpRequestEx(UPDATE_VERSION_URL, "GET", 8, "", true, true, 1u << 20);
+    // ?nc=... — обход кэша GitHub CDN: без него несколько минут после пуша отдаётся старая версия.
+    std::string vurl = UPDATE_VERSION_URL + "?nc=" + std::to_string(GetTickCount64());
+    HttpResult r = httpRequestEx(vurl, "GET", 8, "", true, true, 1u << 20);
     if ((!r.ok || r.body.empty()) && !getSystemProxy().empty())
-        r = httpRequestEx(UPDATE_VERSION_URL, "GET", 8, getSystemProxy(), true, true, 1u << 20);
+        r = httpRequestEx(vurl, "GET", 8, getSystemProxy(), true, true, 1u << 20);
     if (!r.ok || r.code != 200 || r.body.empty()) return "";
     return extractVersion(r.body);
 }
@@ -1899,7 +1902,7 @@ static bool updateSelf() {
     std::string src = tmp;
     // Качаем по отдельности только исходники Linux-версии — не весь репозиторий.
     for (const char* f : UPDATE_FILES) {
-        std::string url = UPDATE_RAW_BASE + f;
+        std::string url = UPDATE_RAW_BASE + f + "?nc=" + std::to_string(GetTickCount64());
         if (!downloadFile(url, src + "/" + f) && !getSystemProxy().empty())
             downloadFile(url, src + "/" + f);   // вторая попытка через системный прокси
         if (!pathExists(src + "/" + f)) {
