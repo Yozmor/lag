@@ -1,5 +1,5 @@
 // lag_core.cpp — ядро Lag для Linux: все проверки, отчёты, обновление.
-// VERSION = 1.0
+// VERSION = 1.1
 // Подключается из lag.cpp (одна единица трансляции, как в Windows-версии).
 // Сборка: make (нужны g++ с C++17 и заголовки OpenSSL: libssl-dev / openssl-devel).
 // Кодировка исходника — UTF-8.
@@ -100,7 +100,7 @@ static inline void setSockTimeoutMs(int s, int ms) {
 }
 
 // ================== ВЕРСИЯ И ССЫЛКИ ОБНОВЛЕНИЯ ==================
-static const std::string SCRIPT_VERSION = "1.0";
+static const std::string SCRIPT_VERSION = "1.1";
 // Обновление качает только файлы папки linux/ (не весь репозиторий), собирает и заменяет бинарник.
 // База для raw-файлов и список файлов Linux-версии:
 static const std::string UPDATE_RAW_BASE =
