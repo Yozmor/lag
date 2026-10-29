@@ -1,5 +1,5 @@
 // lag_core.cpp — ядро Lag для Linux: все проверки, отчёты, обновление.
-// VERSION = 1.1
+// VERSION = 1.0
 // Подключается из lag.cpp (одна единица трансляции, как в Windows-версии).
 // Сборка: make (нужны g++ с C++17 и заголовки OpenSSL: libssl-dev / openssl-devel).
 // Кодировка исходника — UTF-8.

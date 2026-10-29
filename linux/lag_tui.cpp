@@ -242,6 +242,8 @@ static int g_sel = 0;
 static int g_screen = SCR_HOME;
 static int g_focus = 0;
 static std::string g_flash;
+static std::atomic<bool> g_haveUpd{false};   // в репозитории есть более новая версия
+static std::string g_updVer;
 
 static void drawHeader() {
     drawLogo();
@@ -270,8 +272,9 @@ static void drawMenu() {
         if (i == SCR_SETTINGS && airy) y += 1;              // зазор перед «Настройки»
         bool cur = (g_sel == i);
         if (cur) put(y, MENU_X, ui::AMBER, "▌");             // янтарная полоска у выбранного
-        put(y, MENU_X + 3, cur ? ui::AMBER : ui::AMBER, std::to_string(i + 1));
+        put(y, MENU_X + 3, ui::AMBER, std::to_string(i + 1));
         put(y, MENU_X + 5, cur ? ui::TX : ui::DIM, MENU[i].name);
+        if (i == SCR_UPDATE && g_haveUpd) put(y, MENU_X + 5 + (int)dispLen(MENU[i].name) + 1, ui::AMBER, "●");
         y += step;
     }
     y += (airy ? 1 : 0);
@@ -433,11 +436,19 @@ static void editList(int idx) {
 // ---------- Обновление ----------
 static std::atomic<bool> g_updBusy{false};
 static std::string g_updMsg = "Нажми Enter — проверю версию на GitHub.";
+// Тихая проверка версии при старте: если в репозитории НОВЕЕ — показываем пометку в меню.
+static void checkUpdateQuiet() {
+    std::thread([] {
+        std::string rv = fetchRemoteVersion();
+        if (!rv.empty() && verCmp(rv, SCRIPT_VERSION) > 0) { g_updVer = rv; g_haveUpd = true; g_dirty = true; }
+    }).detach();
+}
 static void drawUpdate(int cx, int cw) {
     int top = 6, h = g_rows - top - 1;
     box(top, cx, cw, h, "ОБНОВЛЕНИЕ", g_focus == 1 ? ui::AMBER : ui::TEALD);
     put(top + 2, cx + 3, ui::DIM, "Текущая версия:");
     put(top + 2, cx + 20, ui::TX, SCRIPT_VERSION);
+    if (g_haveUpd) put(top + 2, cx + 28, ui::AMBER, "● в репозитории новее: " + g_updVer);
     put(top + 4, cx + 3, ui::TX, clip(g_updMsg, cw - 6));
     if (g_updBusy) put(top + 6, cx + 3, ui::AMBER, "● работаю…");
     else { put(top + 6, cx + 3, ui::AMBER, "▶ Проверить / обновить"); put(top + 6, cx + 27, ui::DIM, "[Enter]"); }
@@ -498,13 +509,15 @@ static void updateAction() {
     g_updBusy = true; g_updMsg = "Проверяю версию…"; g_dirty = true;
     std::thread([] {
         std::string rv = fetchRemoteVersion();
-        if (rv.empty()) g_updMsg = "Не удалось получить версию с GitHub (сеть/прокси).";
-        else if (rv == SCRIPT_VERSION) g_updMsg = "У тебя последняя версия (" + rv + ").";
-        else {
-            g_updMsg = "Есть версия " + rv + " — качаю и собираю…"; g_dirty = true;
+        if (rv.empty()) g_updMsg = "Не удалось получить версию с GitHub (нет сети, или в репозитории ещё нет linux/lag_core.cpp).";
+        else if (verCmp(rv, SCRIPT_VERSION) <= 0) {
+            g_updMsg = "У тебя актуальная версия (" + std::string(SCRIPT_VERSION) + "; в репозитории " + rv + ").";
+            g_haveUpd = false;
+        } else {
+            g_updMsg = "Есть версия " + rv + " — качаю файлы linux/ и собираю…"; g_dirty = true;
             bool ok = updateSelf();
-            g_updMsg = ok ? ("Готово: обновлено до " + rv + ". Перезапусти Lag.")
-                          : "Обновление не удалось — подробности в консоли после выхода.";
+            if (ok) { g_updMsg = "Готово: обновлено до " + rv + ". Перезапусти Lag."; g_haveUpd = false; }
+            else      g_updMsg = "Обновление не удалось — подробности в консоли после выхода.";
         }
         g_updBusy = false; g_dirty = true;
     }).detach();
@@ -517,6 +530,7 @@ int tuiMain() {
     }
     termSize(); termRaw();
     refreshHome();
+    checkUpdateQuiet();
     uint64_t lastClock = 0, lastHome = 0;
     bool run = true;
     while (run) {
